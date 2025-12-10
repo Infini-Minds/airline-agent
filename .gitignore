@@ -15,8 +15,3 @@ __pycache__/
 
 # Logs
 *.log
-
-# IDE folders
-.idea/
-
-.env
