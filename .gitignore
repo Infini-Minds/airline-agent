@@ -15,4 +15,4 @@ __pycache__/
 
 # Logs
 *.log
-.env
+.env.example
