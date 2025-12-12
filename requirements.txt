@@ -1,9 +1,9 @@
-fastapi==0.95.2
-uvicorn[standard]==0.22.0
-pyPDF2==3.0.1
-openai==0.27.8
-asyncpg==0.27.0
-python-dotenv==1.0.0
-httpx==0.25.0
+fastapi
+uvicorn[standard]
+pyPDF2
+openai
+asyncpg
+python-dotenv
+httpx
 python-multipart
-gradio==3.50.2
+gradio
