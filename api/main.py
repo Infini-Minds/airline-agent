@@ -1,6 +1,4 @@
 from fastapi import FastAPI
-import models
-from database import engine
 from routers import get_routes
 
 app = FastAPI(title="Airline Agent API", description="API to access airline data from Azure Postgres")
