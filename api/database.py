@@ -1,47 +1,50 @@
 import os
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 load_dotenv()
 
-# Fetch environment variables
+# Fetch environment variables (using POSTGRES_* naming convention)
 USER = os.getenv("POSTGRES_USER")
 PASSWORD = os.getenv("POSTGRES_PASSWORD")
 HOST = os.getenv("POSTGRES_HOST")
 PORT = os.getenv("POSTGRES_PORT", "5432")
 DB_NAME = os.getenv("POSTGRES_DB")
 
-# Construct the connection URL (including SSL mode for Azure)
-# Format: postgresql://user:password@host:port/dbname?sslmode=require
-from urllib.parse import quote_plus
-
 # Ensure required env vars are present
 if not all([USER, PASSWORD, HOST, DB_NAME]):
     raise EnvironmentError("Missing required PostgreSQL environment variables. Check .env file.")
 
-# URL‑encode the password to handle special characters like '@'
+# URL-encode the password to handle special characters like '@'
 password_enc = quote_plus(PASSWORD)
 
-# Construct the connection URL (including SSL mode for Azure)
-# Format: postgresql://user:password@host:port/dbname?sslmode=require
-sslmode = os.getenv("POSTGRES_SSLMODE", "require")
-SQLALCHEMY_DATABASE_URL = f"postgresql://{USER}:{password_enc}@{HOST}:{PORT}/{DB_NAME}?sslmode={sslmode}"
+# Construct the async connection URL (using asyncpg driver)
+# Format: postgresql+asyncpg://user:password@host:port/dbname
+SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{USER}:{password_enc}@{HOST}:{PORT}/{DB_NAME}"
 
-# Azure Postgres often requires SSL mode
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, 
-    pool_pre_ping=True
+# Create async engine
+engine = create_async_engine(
+    SQLALCHEMY_DATABASE_URL,
+    pool_pre_ping=True,
+    echo=False
 )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# Create async session factory
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False
+)
 
 Base = declarative_base()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

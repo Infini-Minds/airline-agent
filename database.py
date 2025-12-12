@@ -6,11 +6,11 @@ from urllib.parse import quote
 
 load_dotenv()
 
-POSTGRES_HOST = os.getenv("DB_HOST", "airlines-server.postgres.database.azure.com")
-POSTGRES_PORT = int(os.getenv("DB_PORT", 5432))
-POSTGRES_USER = os.getenv("DB_USER", "admin_login")
-POSTGRES_PASSWORD = quote(os.getenv("DB_PASS", "saturam@123"))  # encode special chars
-POSTGRES_DB = os.getenv("DB_NAME", "airlines")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "airlines-server.postgres.database.azure.com")
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", 5432))
+POSTGRES_USER = os.getenv("POSTGRES_USER", "admin_login")
+POSTGRES_PASSWORD = quote(os.getenv("POSTGRES_PASSWORD", "saturam@123"))  # encode special chars
+POSTGRES_DB = os.getenv("POSTGRES_DB", "airlines")
 
 DSN = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
