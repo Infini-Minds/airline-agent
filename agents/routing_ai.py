@@ -54,13 +54,12 @@ def _call_openai_sync(prompt: str, max_tokens: int = 200):
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": prompt},
         ],
         temperature=0,
-        max_tokens=max_tokens
+        max_tokens=max_tokens,
     )
     return resp.choices[0].message["content"].strip()
-
 
 
 async def ai_decide_agent(event: dict, db_rules: list = None) -> dict:
@@ -74,9 +73,11 @@ async def ai_decide_agent(event: dict, db_rules: list = None) -> dict:
 
     # Build user prompt
     prompt = (
-        "EVENT:\n" + json.dumps(event, indent=2) +
-        "\n\nDB_RULES:\n" + json.dumps(db_rules or [], indent=2) +
-        "\n\nRespond ONLY with JSON."
+        "EVENT:\n"
+        + json.dumps(event, indent=2)
+        + "\n\nDB_RULES:\n"
+        + json.dumps(db_rules or [], indent=2)
+        + "\n\nRespond ONLY with JSON."
     )
 
     loop = asyncio.get_event_loop()
@@ -92,5 +93,5 @@ async def ai_decide_agent(event: dict, db_rules: list = None) -> dict:
         # If the model ever breaks JSON, force safe fallback
         return {
             "selected_agents": ["monitoring_agent"],
-            "reason": "fallback - invalid JSON from model"
+            "reason": "fallback - invalid JSON from model",
         }

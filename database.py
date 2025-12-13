@@ -6,10 +6,14 @@ from urllib.parse import quote
 
 load_dotenv()
 
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "airlines-server.postgres.database.azure.com")
+POSTGRES_HOST = os.getenv(
+    "POSTGRES_HOST", "airlines-server.postgres.database.azure.com"
+)
 POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", 5432))
 POSTGRES_USER = os.getenv("POSTGRES_USER", "admin_login")
-POSTGRES_PASSWORD = quote(os.getenv("POSTGRES_PASSWORD", "saturam@123"))  # encode special chars
+POSTGRES_PASSWORD = quote(
+    os.getenv("POSTGRES_PASSWORD", "saturam@123")
+)  # encode special chars
 POSTGRES_DB = os.getenv("POSTGRES_DB", "airlines")
 
 DSN = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
@@ -28,7 +32,8 @@ async def get_pool():
 async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute("""
+        await conn.execute(
+            """
        CREATE TABLE IF NOT EXISTS master_decision_table (
           id SERIAL PRIMARY KEY,
           event_id TEXT NOT NULL,
@@ -41,14 +46,19 @@ async def init_db():
           created_at TIMESTAMPTZ DEFAULT now(),
           processed_at TIMESTAMPTZ
         );
-        """)
+        """
+        )
 
 
-async def insert_master_decision(event_id: str, event_json: dict, selected_agents: list, reason: str):
+async def insert_master_decision(
+    event_id: str, event_json: dict, selected_agents: list, reason: str
+):
     pool = await get_pool()
     severity = event_json.get("severity", None)  # Extract severity from JSON
     if isinstance(severity, list):
-        severity = severity[0] if severity else None  # or ", ".join(severity) if you want all
+        severity = (
+            severity[0] if severity else None
+        )  # or ", ".join(severity) if you want all
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
@@ -56,7 +66,11 @@ async def insert_master_decision(event_id: str, event_json: dict, selected_agent
             VALUES ($1, $2::jsonb, $3::jsonb, $4, $5)
             RETURNING id, created_at
             """,
-            event_id, json.dumps(event_json), json.dumps(selected_agents), reason, severity
+            event_id,
+            json.dumps(event_json),
+            json.dumps(selected_agents),
+            reason,
+            severity,
         )
         return dict(row)
 
@@ -72,7 +86,7 @@ async def fetch_pending_decisions(limit: int = 50):
             ORDER BY created_at ASC
             LIMIT $1
             """,
-            limit
+            limit,
         )
         return [dict(r) for r in rows]
 
@@ -82,15 +96,16 @@ async def mark_decision_processing(decision_id: int):
     async with pool.acquire() as conn:
         await conn.execute(
             "UPDATE master_decision_table SET status='processing' WHERE id=$1",
-            decision_id
+            decision_id,
         )
 
 
 async def mark_decision_processed(decision_id: int, success: bool = True):
     pool = await get_pool()
     async with pool.acquire() as conn:
-        status = 'processed' if success else 'failed'
+        status = "processed" if success else "failed"
         await conn.execute(
             "UPDATE master_decision_table SET status=$1, processed_at = now() WHERE id=$2",
-            status, decision_id
+            status,
+            decision_id,
         )

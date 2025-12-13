@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, DateTime, Date, Boolean, Float, Text
 from database import Base
 
+
 class Aircraft(Base):
     __tablename__ = "aircraft"
     aircraft_id = Column(String, primary_key=True, index=True)
@@ -13,8 +14,9 @@ class Aircraft(Base):
     first_seats = Column(Integer)
     current_location = Column(String)
     maintenance_status = Column(String)
-    last_maintenance = Column(String) 
+    last_maintenance = Column(String)
     next_maintenance = Column(String)
+
 
 class AircraftMaintenance(Base):
     __tablename__ = "aircraft_maintenance"
@@ -28,6 +30,7 @@ class AircraftMaintenance(Base):
     status = Column(String)
     description = Column(Text)
 
+
 class Airport(Base):
     __tablename__ = "airport"
     airport_code = Column(String, primary_key=True, index=True)
@@ -36,7 +39,8 @@ class Airport(Base):
     country = Column(String)
     timezone = Column(String)
     max_hourly_slots = Column(Integer)
-    operational_status = Column(String) 
+    operational_status = Column(String)
+
 
 class Crew(Base):
     __tablename__ = "crew"
@@ -49,6 +53,7 @@ class Crew(Base):
     is_available = Column(String)
     last_duty = Column(String)
 
+
 class CrewAssignment(Base):
     __tablename__ = "crew_assignment"
     assignment_id = Column(String, primary_key=True, index=True)
@@ -57,6 +62,7 @@ class CrewAssignment(Base):
     role = Column(String)
     assignment_date = Column(String)
     status = Column(String)
+
 
 class CrewDutyTime(Base):
     __tablename__ = "crew_duty_time"
@@ -68,6 +74,7 @@ class CrewDutyTime(Base):
     remaining_hours = Column(Float)
     requires_rest = Column(String)
 
+
 class Disruption(Base):
     __tablename__ = "disruption"
     event_id = Column(String, primary_key=True, index=True)
@@ -78,6 +85,7 @@ class Disruption(Base):
     start_time = Column(String)
     end_time = Column(String)
 
+
 class DisruptionResolution(Base):
     __tablename__ = "disruption_resolution"
     disruption_id = Column(String, primary_key=True, index=True)
@@ -87,6 +95,7 @@ class DisruptionResolution(Base):
     passengers_booked = Column(Integer)
     hotel_bookings_made = Column(Integer)
     vouchers_issued = Column(Integer)
+
 
 class Flight(Base):
     __tablename__ = "flight"
@@ -103,6 +112,7 @@ class Flight(Base):
     status = Column(String)
     available_seats = Column(Integer)
 
+
 class FlightDisruption(Base):
     __tablename__ = "flight_disruption"
     disruption_id = Column(String, primary_key=True)
@@ -113,12 +123,16 @@ class FlightDisruption(Base):
     status = Column(String)
     requires_escalation = Column(String)
 
+
 class FlightSegment(Base):
     __tablename__ = "flight_segment"
-    flight_prefix = Column(String, primary_key=True) # Assuming prefix identifies this lookup table
+    flight_prefix = Column(
+        String, primary_key=True
+    )  # Assuming prefix identifies this lookup table
     primary_airline_name = Column(String)
     parent_company_airline_group = Column(String)
     co_company = Column(String)
+
 
 class HotelBooking(Base):
     __tablename__ = "hotel_booking"
@@ -132,6 +146,7 @@ class HotelBooking(Base):
     booking_status = Column(String)
     booking_reference = Column(String)
 
+
 class HotelDetails(Base):
     __tablename__ = "hotel_details"
     hotel_id = Column(String, primary_key=True, index=True)
@@ -143,6 +158,7 @@ class HotelDetails(Base):
     available_from = Column(String)
     available_till = Column(String)
 
+
 class Passenger(Base):
     __tablename__ = "passenger"
     passenger_id = Column(String, primary_key=True, index=True)
@@ -153,6 +169,7 @@ class Passenger(Base):
     frequent_flyer_number = Column(String)
     loyalty_tier = Column(String)
     preferred_contact_method = Column(String)
+
 
 class PassengerBooking(Base):
     __tablename__ = "passenger_booking"
@@ -167,15 +184,17 @@ class PassengerBooking(Base):
     booking_date = Column(String)
     is_disrupted = Column(String)
 
+
 class Rebooking(Base):
     __tablename__ = "rebooking"
-    booking_id = Column(String, primary_key=True) # Assuming this is new booking id
+    booking_id = Column(String, primary_key=True)  # Assuming this is new booking id
     old_booking_id = Column(String)
     flight_id = Column(String)
     old_flight_id = Column(String)
     rebooking_reason = Column(String)
     auto_rebooked = Column(String)
     confirmation_status = Column(String)
+
 
 class Voucher(Base):
     __tablename__ = "voucher"

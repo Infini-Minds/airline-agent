@@ -4,7 +4,7 @@ import json
 import time
 import threading
 
-FASTAPI_URL = "http://localhost:8000"   # FastAPI host & port
+FASTAPI_URL = "http://localhost:8000"  # FastAPI host & port
 
 
 # -------------------------------
@@ -33,6 +33,7 @@ def upload_pdf_to_api(pdf_file):
 # -------------------------------
 stop_polling = False
 
+
 def poll_logs():
     logs_display = ""
 
@@ -55,7 +56,9 @@ def poll_logs():
 # -------------------------------
 with gr.Blocks(title="Airline IRROPS Dashboard") as ui:
 
-    gr.Markdown("# ✈️ Airline IRROPS Event Analyzer\nUpload operational PDFs → Parse → Route → Process Agents")
+    gr.Markdown(
+        "# ✈️ Airline IRROPS Event Analyzer\nUpload operational PDFs → Parse → Route → Process Agents"
+    )
 
     with gr.Row():
         pdf_input = gr.File(label="Upload PDF File", file_types=[".pdf"])
@@ -71,7 +74,7 @@ with gr.Blocks(title="Airline IRROPS Dashboard") as ui:
     submit_btn.click(
         fn=upload_pdf_to_api,
         inputs=pdf_input,
-        outputs=[status_box, events_output, routing_output]
+        outputs=[status_box, events_output, routing_output],
     )
 
     # Start log polling thread
