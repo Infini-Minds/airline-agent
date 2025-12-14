@@ -21,7 +21,7 @@ def agentmaster(inputfile: func.InputStream):
 #
 # import azurefunctions.extensions.bindings.blob as blob
 # @app.blob_trigger(arg_name="client", path="masteragent",
-#                   connection="DefaultEndpointsProtocol=https;AccountName=masteragent;AccountKey="blobk container kye";EndpointSuffix=core.windows.net")
+#                   connection="DefaultEndpointsProtocol=https;AccountName=masteragent;AccountKey="container key";EndpointSuffix=core.windows.net")
 # def agentmaster(client: blob.BlobClient):
 #     logging.info(
 #         f"Python blob trigger function processed blob \n"
