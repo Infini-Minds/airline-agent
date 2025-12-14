@@ -1,6 +1,8 @@
 from sqlalchemy import Column, String, Integer, DateTime, Date, Boolean, Float, Text
-from database import Base
+from sqlalchemy.ext.declarative import declarative_base
 
+
+Base = declarative_base()
 class Aircraft(Base):
     __tablename__ = "aircraft"
     aircraft_id = Column(String, primary_key=True, index=True)
@@ -164,7 +166,7 @@ class PassengerBooking(Base):
     cabin_class = Column(String)
     ticket_price = Column(Float)
     booking_status = Column(String)
-    booking_date = Column(String)
+    # booking_date = Column(String)
     is_disrupted = Column(String)
 
 class Rebooking(Base):
