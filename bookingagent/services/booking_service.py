@@ -1,6 +1,7 @@
 from models.booking import Booking
 from datetime import datetime
 
+
 class BookingService:
     def __init__(self):
         self.bookings = {}  # In-memory storage

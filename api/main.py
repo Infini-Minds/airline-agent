@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import get_routes
+from api.airline_service import get_routes
 
 app = FastAPI(
     title="Airline Agent API",

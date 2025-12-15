@@ -1,11 +1,21 @@
 from sqlalchemy import (
-    Column, String, Integer, Float, Text, DateTime, Boolean, ForeignKey, Enum, PrimaryKeyConstraint
+    Column,
+    String,
+    Integer,
+    Float,
+    Text,
+    DateTime,
+    Boolean,
+    ForeignKey,
+    Enum,
+    PrimaryKeyConstraint,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
 Base = declarative_base()
+
 
 # ----------------------
 # Aircraft
@@ -40,7 +50,15 @@ class AircraftMaintenance(Base):
     scheduled_end = Column(DateTime)
     actual_start = Column(DateTime)
     actual_end = Column(DateTime)
-    status = Column(Enum("Scheduled", "In Progress", "Completed", "Cancelled", name="maintenance_status_enum"))
+    status = Column(
+        Enum(
+            "Scheduled",
+            "In Progress",
+            "Completed",
+            "Cancelled",
+            name="maintenance_status_enum",
+        )
+    )
     description = Column(Text)
 
 
@@ -55,10 +73,18 @@ class Airport(Base):
     country = Column(String)
     timezone = Column(String)
     max_hourly_slots = Column(Integer)
-    operational_status = Column(Enum("Open", "Closed", "TRUE", "Limited", name="airport_status_enum"))
+    operational_status = Column(
+        Enum("Open", "Closed", "TRUE", "Limited", name="airport_status_enum")
+    )
 
-    flights_origin = relationship("Flight", back_populates="origin", foreign_keys="Flight.origin_airport")
-    flights_destination = relationship("Flight", back_populates="destination", foreign_keys="Flight.destination_airport")
+    flights_origin = relationship(
+        "Flight", back_populates="origin", foreign_keys="Flight.origin_airport"
+    )
+    flights_destination = relationship(
+        "Flight",
+        back_populates="destination",
+        foreign_keys="Flight.destination_airport",
+    )
     aircrafts = relationship("Aircraft", backref="current_airport")
 
 
@@ -80,7 +106,9 @@ class Crew(Base):
     duty_times = relationship("CrewDutyTime", back_populates="crew")
 
 
-"Scheduled","Active","Suspended","Completed","Standby"
+"Scheduled", "Active", "Suspended", "Completed", "Standby"
+
+
 class CrewAssignment(Base):
     __tablename__ = "crew_assignment"
     assignment_id = Column(String, primary_key=True, index=True)
@@ -88,7 +116,16 @@ class CrewAssignment(Base):
     flight_id = Column(String, ForeignKey("flight.flight_id"))
     role = Column(String)
     assignment_date = Column(DateTime)
-    status = Column(Enum("Scheduled","Active","Suspended","Completed","Standby", name="crew_assignment_status_enum"))
+    status = Column(
+        Enum(
+            "Scheduled",
+            "Active",
+            "Suspended",
+            "Completed",
+            "Standby",
+            name="crew_assignment_status_enum",
+        )
+    )
 
     crew = relationship("Crew", back_populates="assignments")
     flight = relationship("Flight", back_populates="crew_assignments")
@@ -110,7 +147,9 @@ class CrewDutyTime(Base):
 # ----------------------
 # Flight
 # ----------------------
-"En Route","Cancelled","Landed","Delayed","Scheduled"
+"En Route", "Cancelled", "Landed", "Delayed", "Scheduled"
+
+
 class Flight(Base):
     __tablename__ = "flight"
     flight_id = Column(String, primary_key=True, index=True)
@@ -123,12 +162,27 @@ class Flight(Base):
     scheduled_arrival = Column(DateTime)
     actual_departure = Column(DateTime, nullable=True)
     actual_arrival = Column(DateTime, nullable=True)
-    status = Column(Enum("En Route", "Cancelled", "Landed", "Delayed", "Scheduled", name="flight_status_enum"))
+    status = Column(
+        Enum(
+            "En Route",
+            "Cancelled",
+            "Landed",
+            "Delayed",
+            "Scheduled",
+            name="flight_status_enum",
+        )
+    )
     available_seats = Column(Integer)
 
     aircraft = relationship("Aircraft", back_populates="flights")
-    origin = relationship("Airport", foreign_keys=[origin_airport], back_populates="flights_origin")
-    destination = relationship("Airport", foreign_keys=[destination_airport], back_populates="flights_destination")
+    origin = relationship(
+        "Airport", foreign_keys=[origin_airport], back_populates="flights_origin"
+    )
+    destination = relationship(
+        "Airport",
+        foreign_keys=[destination_airport],
+        back_populates="flights_destination",
+    )
     crew_assignments = relationship("CrewAssignment", back_populates="flight")
     bookings = relationship("PassengerBooking", back_populates="flight")
     disruptions = relationship("FlightDisruption", back_populates="flight")
@@ -140,7 +194,17 @@ class Flight(Base):
 class Disruption(Base):
     __tablename__ = "disruption"
     event_id = Column(String, primary_key=True, index=True)
-    event_type = Column(Enum("Delay", "Bomb Threat", "Weather", "Mechanical failure",  "Crew Unavailability", "Traffic", name="disruption_type_enum"))
+    event_type = Column(
+        Enum(
+            "Delay",
+            "Bomb Threat",
+            "Weather",
+            "Mechanical failure",
+            "Crew Unavailability",
+            "Traffic",
+            name="disruption_type_enum",
+        )
+    )
     severity = Column(Enum("Low", "Medium", "High", "Critical", name="severity_enum"))
     impact_description = Column(Text)
     airport_code = Column(String, ForeignKey("airport.airport_code"))
@@ -151,30 +215,53 @@ class Disruption(Base):
 class DisruptionResolution(Base):
     __tablename__ = "disruption_resolution"
     disruption_id = Column(String, primary_key=True, index=True)
-    resolution_type = Column(Enum("Rebooking", "Compensation", "Hotel", "Voucher", name="resolution_type_enum"))
+    resolution_type = Column(
+        Enum(
+            "Rebooking", "Compensation", "Hotel", "Voucher", name="resolution_type_enum"
+        )
+    )
     resolved_at = Column(DateTime)
-    resolution_status = Column(Enum("Ongoing", "Resolved", "Escalated", name="resolution_status_enum"))
+    resolution_status = Column(
+        Enum("Ongoing", "Resolved", "Escalated", name="resolution_status_enum")
+    )
     passengers_booked = Column(Integer)
     hotel_bookings_made = Column(Integer)
     vouchers_issued = Column(Integer)
-
 
 
 class FlightDisruption(Base):
     __tablename__ = "flight_disruption"
     disruption_id = Column(String)
     flight_id = Column(String, ForeignKey("flight.flight_id"))
-    event_type = Column(Enum("Delay", "Bomb Threat", "Threat", "Weather", "Mechanical failure",  "Crew Unavailability", "Traffic", name="disruption_type_enum"))
+    event_type = Column(
+        Enum(
+            "Delay",
+            "Bomb Threat",
+            "Threat",
+            "Weather",
+            "Mechanical failure",
+            "Crew Unavailability",
+            "Traffic",
+            name="disruption_type_enum",
+        )
+    )
     severity = Column(Enum("Low", "Medium", "High", "Critical", name="severity_enum"))
     affected_passengers = Column(Integer)
-    status = Column(Enum("Ongoing", "Resolved", "Escalated", "Active", "Cancelled", name="disruption_status_enum"))
+    status = Column(
+        Enum(
+            "Ongoing",
+            "Resolved",
+            "Escalated",
+            "Active",
+            "Cancelled",
+            name="disruption_status_enum",
+        )
+    )
     requires_escalation = Column(Boolean)
 
     flight = relationship("Flight", back_populates="disruptions")
 
-    __table_args__ = (
-        PrimaryKeyConstraint("disruption_id", "flight_id"),
-    )
+    __table_args__ = (PrimaryKeyConstraint("disruption_id", "flight_id"),)
 
 
 # ----------------------
@@ -203,7 +290,9 @@ class PassengerBooking(Base):
     seat_number = Column(String)
     cabin_class = Column(String)
     ticket_price = Column(Float)
-    booking_status = Column(Enum("Confirmed", "Cancelled", "Checked In", name="booking_status_enum"))
+    booking_status = Column(
+        Enum("Confirmed", "Cancelled", "Checked In", name="booking_status_enum")
+    )
     is_disrupted = Column(Boolean, default=False)
 
     passenger = relationship("Passenger", back_populates="bookings")
@@ -211,12 +300,19 @@ class PassengerBooking(Base):
     vouchers = relationship("Voucher", back_populates="booking")
 
 
-
 class Voucher(Base):
     __tablename__ = "voucher"
     voucher_id = Column(String, primary_key=True, index=True)
     booking_id = Column(String, ForeignKey("passenger_booking.booking_id"))
-    voucher_type = Column(Enum("Meal Voucher", "Lounge Access", "Refund Voucher","Hotel Booking", name="voucher_type_enum"))
+    voucher_type = Column(
+        Enum(
+            "Meal Voucher",
+            "Lounge Access",
+            "Refund Voucher",
+            "Hotel Booking",
+            name="voucher_type_enum",
+        )
+    )
     expiry_date = Column(DateTime)
     status = Column(Enum("Issued", "Redeemed", "Expired", name="voucher_status_enum"))
 
@@ -234,7 +330,9 @@ class Rebooking(Base):
     old_flight_id = Column(String, ForeignKey("flight.flight_id"))
     rebooking_reason = Column(String)
     auto_rebooked = Column(Boolean)
-    confirmation_status = Column(Enum("Pending", "Confirmed", "Failed", name="rebooking_status_enum"))
+    confirmation_status = Column(
+        Enum("Pending", "Confirmed", "Failed", name="rebooking_status_enum")
+    )
 
 
 # ----------------------
@@ -249,7 +347,9 @@ class HotelBooking(Base):
     hotel_address = Column(String)
     check_in = Column(DateTime)
     check_out = Column(DateTime)
-    booking_status = Column(Enum("Pending", "Confirmed", "Cancelled", name="hotel_booking_status_enum"))
+    booking_status = Column(
+        Enum("Pending", "Confirmed", "Cancelled", name="hotel_booking_status_enum")
+    )
     booking_reference = Column(String)
 
 

@@ -18,6 +18,7 @@ def read_value(filename, cast=str):
         raise FileNotFoundError(f"Missing secret file: {path}")
     return cast(path.read_text().strip())
 
+
 pwd = read_value("db_password.txt")
 # Central DB config
 DB_SET_UP = {
@@ -40,11 +41,7 @@ def get_db_url():
 
 
 # Create engine ONCE
-engine = create_engine(
-    get_db_url(),
-    poolclass=NullPool,
-    json_deserializer=lambda x: x
-)
+engine = create_engine(get_db_url(), poolclass=NullPool, json_deserializer=lambda x: x)
 
 
 def get_session_and_engine():

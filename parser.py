@@ -8,11 +8,14 @@ import time
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+from openai import OpenAI
+client = OpenAI()
+from datetime import datetime
+
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
-
+today_str = datetime.now().strftime("%Y-%m-%d")
 # --------------- PDF extraction ---------------
 def extract_text_from_pdf(file_obj) -> str:
     """
@@ -33,7 +36,7 @@ def extract_text_from_pdf(file_obj) -> str:
 # --------------- helper to call OpenAI safely ---------------
 def _call_openai(prompt: str, max_tokens: int = 1000) -> str:
     # synchronous call; we'll call via to_thread from async code if needed
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {
@@ -45,8 +48,7 @@ def _call_openai(prompt: str, max_tokens: int = 1000) -> str:
         temperature=0,
         max_tokens=max_tokens,
     )
-    return response.choices[0].message["content"].strip()
-
+    return response.choices[0].message.content.strip()
 
 # --------------- parse chunk ---------------
 def _repair_and_load_json(raw_output: str):
@@ -85,20 +87,38 @@ def parse_event_chunk(text_chunk: str) -> List[Dict]:
     Build prompt and call OpenAI synchronously; return parsed list of events.
     """
     system_instructions = """
-Return ONLY valid JSON array of event objects. No extra text.
+    Return ONLY a valid JSON array of event objects. No explanations, no extra text.
 
-Event fields:
-- event_id (string)
-- event_type (array of types: Weather, Threat, Crew, Traffic, MechanicalFailure, Other)
-- severity (array of: Low, Medium, High, Critical)
-- impact_description (array of short strings)
-- airport_code (array of IATA codes)
-- start_time (YYYY-MM-DD HH:MM or "Unknown")
-- end_time (YYYY-MM-DD HH:MM or "Unknown")
-- actions (array of suggested action strings)
+    Event fields:
+    - event_id (string)
+    - event_type (array of types: Weather, Threat, Crew, Traffic, MechanicalFailure, Other)
+    - severity (array of: Low, Medium, High, Critical)
+    - impact_description (array of short strings)
+    - airport_code (array of IATA codes)
+    - start_time (YYYY-MM-DD HH:MM)
+    - end_time (YYYY-MM-DD HH:MM)
+    - actions (array of suggested action strings)
 
-If unsure of a value, use "Unknown". Ensure perfectly valid JSON.
-"""
+    TIME EXTRACTION RULES:
+    - If the text contains phrases like:
+      • "between X – Y"
+      • "from X to Y"
+      • "expected between X and Y"
+      • "from X onwards" → use X as start_time, leave end_time as empty string ""
+      • "until Y" → set end_time as Y
+    - If date is not mentioned, assume TODAY’s date: {today_str}.
+    - Preserve the local time exactly as written.
+    - Both start_time and end_time MUST be populated or empty string "".
+    - NEVER use the word "Unknown".
+
+    OTHER RULES:
+    - airport_code must be valid IATA codes.
+    - severity must reflect wording (e.g., "low-visibility" → Medium or High depending on context).
+    - impact_description must be short factual phrases.
+    - actions must be realistic airline operational actions.
+    - Ensure perfectly valid JSON (double quotes, no trailing commas).
+    """
+
     user_prompt = f"{system_instructions}\n\nPDF_CHUNK:\n{text_chunk}"
     raw_output = _call_openai(user_prompt, max_tokens=1200)
     events = _repair_and_load_json(raw_output)

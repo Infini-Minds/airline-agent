@@ -6,10 +6,11 @@ from api.airline_service.threat_service import (
     get_bookings,
     get_status_distribution,
     get_escalation_rate,
-    get_dashboard_map_data
+    get_dashboard_map_data,
 )
 
 api = Blueprint("airline_api", __name__)
+
 
 # -------------------
 # DASHBOARD SUMMARY
@@ -73,6 +74,7 @@ def bomb_threat_city():
         return jsonify({"error": str(e)}), 500
     finally:
         session.close()
+
 
 @api.route("/dashboard/map", methods=["GET"])
 def dashboard_map():

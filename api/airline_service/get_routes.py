@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from database import fetch_all
+from api.database import fetch_all
 
 router = APIRouter()
 
@@ -104,3 +104,9 @@ async def get_rebookings():
 @router.get("/voucher/")
 async def get_vouchers():
     return await fetch_all("voucher")
+
+
+# --- master_decision_table ---
+@router.get("/master_decision_table/")
+async def get_vouchers():
+    return await fetch_all("master_decision_table")

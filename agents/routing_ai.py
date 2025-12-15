@@ -5,6 +5,9 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import openai
 from dotenv import load_dotenv
+from openai import OpenAI
+
+client = OpenAI()
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -50,7 +53,7 @@ So be precise and avoid guessing unrelated agents.
 
 
 def _call_openai_sync(prompt: str, max_tokens: int = 200):
-    resp = openai.ChatCompletion.create(
+    resp = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -59,7 +62,7 @@ def _call_openai_sync(prompt: str, max_tokens: int = 200):
         temperature=0,
         max_tokens=max_tokens,
     )
-    return resp.choices[0].message["content"].strip()
+    return resp.choices[0].message.content.strip()
 
 
 async def ai_decide_agent(event: dict, db_rules: list = None) -> dict:
