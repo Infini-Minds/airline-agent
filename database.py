@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 import json
 from urllib.parse import quote
+from datetime import datetime, timezone
+# import datetime
 
 load_dotenv()
 
@@ -11,7 +13,7 @@ POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", 5432))
 POSTGRES_USER = os.getenv("POSTGRES_USER", "admin_login")
 POSTGRES_PASSWORD = quote(os.getenv("POSTGRES_PASSWORD", "saturam@123"))  # encode special chars
 POSTGRES_DB = os.getenv("POSTGRES_DB", "airlines")
-
+incident_date = datetime.now(timezone.utc)  # ✅ ingestion time
 DSN = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 # Use a pool for production
@@ -29,19 +31,22 @@ async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute("""
-       CREATE TABLE IF NOT EXISTS master_decision_table (
-          id SERIAL PRIMARY KEY,
-          event_id TEXT NOT NULL,
-          event_json JSONB NOT NULL,
-          agents JSONB,
-          selected_agents JSONB NOT NULL,
-          reason TEXT,
-          severity VARCHAR(20),
-          status VARCHAR(20) NOT NULL DEFAULT 'pending',
-          created_at TIMESTAMPTZ DEFAULT now(),
-          processed_at TIMESTAMPTZ
+        DROP TABLE IF EXISTS master_decision_table;
+
+        CREATE TABLE master_decision_table (
+            id SERIAL PRIMARY KEY,
+            event_id TEXT NOT NULL,
+            event_json JSONB NOT NULL,
+            agents JSONB,
+            selected_agents JSONB NOT NULL,
+            reason TEXT,
+            severity VARCHAR(20),
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMPTZ DEFAULT now(),
+            processed_at TIMESTAMPTZ,
+            incident_date TIMESTAMPTZ DEFAULT now()
         );
-        """)
+    """)
 
 
 async def insert_master_decision(event_id: str, event_json: dict, selected_agents: list, reason: str):
@@ -52,11 +57,16 @@ async def insert_master_decision(event_id: str, event_json: dict, selected_agent
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
-            INSERT INTO master_decision_table (event_id, event_json, selected_agents, reason, severity)
-            VALUES ($1, $2::jsonb, $3::jsonb, $4, $5)
-            RETURNING id, created_at
+            INSERT INTO master_decision_table (event_id, event_json, selected_agents, reason, severity, incident_date)
+            VALUES ($1, $2::jsonb, $3::jsonb, $4, $5, $6)
+            RETURNING id, created_at, incident_date;
             """,
-            event_id, json.dumps(event_json), json.dumps(selected_agents), reason, severity
+            event_id,
+            json.dumps(event_json),
+            json.dumps(selected_agents),
+            reason,
+            severity,
+            incident_date
         )
         return dict(row)
 
