@@ -28,6 +28,7 @@ Your ONLY job:
 - crew_agent → crew legality, hours, flight duty time, rest issues, crew shortage.
 - traffic_agent → runway closure, taxiway congestion, ATC flow programs, airport capacity.
 - maintenance_agent → mechanical failures, MEL/CDL, technical faults.
+- bomb_threat_agent → bomb threats, security incidents, terminal evacuations, security alerts.
 - monitoring_agent → everything else / low severity / not enough info.
 
 ------------------------------------

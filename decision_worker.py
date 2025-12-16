@@ -7,13 +7,14 @@ from database import (
 )
 from agents.weather_agent import weather_agent
 from agents.monitoring import monitoring_agent
-from agents.crew_agent import crew_agent
+from agents.bomb_threat_agent import bomb_threat_agent
 import json
 
 AGENT_MAP = {
     "weather_agent": weather_agent,
     "crew_agent": crew_agent,
     "monitoring": monitoring_agent,
+    "bomb_threat_agent": bomb_threat_agent
 }
 
 POLL_INTERVAL = 3.0

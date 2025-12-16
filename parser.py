@@ -9,11 +9,12 @@ from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 from openai import OpenAI
-client = OpenAI()
 from datetime import datetime
 
 
 load_dotenv()
+client = OpenAI()
+
 openai.api_key = os.getenv("OPENAI_API_KEY")
 today_str = datetime.now().strftime("%Y-%m-%d")
 # --------------- PDF extraction ---------------

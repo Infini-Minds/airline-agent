@@ -1,10 +1,13 @@
 # Python environment
 env/
+venv/
+.venv/
 *.pyc
 __pycache__/
 
 # IDE folders
 .idea/
+.vscode/
 
 # OS files
 .DS_Store
