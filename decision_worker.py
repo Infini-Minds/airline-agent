@@ -15,7 +15,7 @@ AGENT_MAP = {
     "weather_agent": weather_agent,
     "crew_agent": crew_agent,
     "monitoring": monitoring_agent,
-    "bomb_threat_agent": bomb_threat_agent
+    "bomb_threat_agent": bomb_threat_agent,
 }
 
 POLL_INTERVAL = 3.0

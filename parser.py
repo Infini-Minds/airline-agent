@@ -17,6 +17,8 @@ client = OpenAI()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 today_str = datetime.now().strftime("%Y-%m-%d")
+
+
 # --------------- PDF extraction ---------------
 def extract_text_from_pdf(file_obj) -> str:
     """
@@ -50,6 +52,7 @@ def _call_openai(prompt: str, max_tokens: int = 1000) -> str:
         max_tokens=max_tokens,
     )
     return response.choices[0].message.content.strip()
+
 
 # --------------- parse chunk ---------------
 def _repair_and_load_json(raw_output: str):

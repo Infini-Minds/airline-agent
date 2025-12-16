@@ -10,10 +10,26 @@ from sqlalchemy.orm import joinedload
 from geopy.geocoders import Nominatim
 
 from api.reader import get_session_and_engine
-from api.models import Disruption, FlightDisruption, HotelBooking, Voucher, Flight, Airport
-from api.airline_console.airline_engine import get_airports_by_city, get_flights_by_airports, \
-    get_bookings_by_flight_ids, get_crews_and_aircraft, create_disruption, close_airports, \
-    save_flight_disruptions, get_available_hotels, save_hotel_bookings, save_vouchers
+from api.models import (
+    Disruption,
+    FlightDisruption,
+    HotelBooking,
+    Voucher,
+    Flight,
+    Airport,
+)
+from api.airline_console.airline_engine import (
+    get_airports_by_city,
+    get_flights_by_airports,
+    get_bookings_by_flight_ids,
+    get_crews_and_aircraft,
+    create_disruption,
+    close_airports,
+    save_flight_disruptions,
+    get_available_hotels,
+    save_hotel_bookings,
+    save_vouchers,
+)
 
 
 geolocator = Nominatim(user_agent="airline_ops_dashboard")
@@ -23,6 +39,7 @@ def _generate_booking_ref() -> str:
     date_str = datetime.utcnow().strftime("%Y%m%d")
     unique_id = uuid.uuid4().hex[:6].upper()
     return f"H-{date_str}-{unique_id}"
+
 
 def _generate_booking_id():
     return f"HB-{uuid.uuid4().hex[:8].upper()}"
@@ -46,7 +63,11 @@ def weather_decision(flight, severity, alternate_airport):
     if severity == "Low":
         return "Delayed", flight.destination_airport
     if severity == "Medium":
-        return ("Rerouted", alternate_airport) if alternate_airport else ("Delayed", flight.destination_airport)
+        return (
+            ("Rerouted", alternate_airport)
+            if alternate_airport
+            else ("Delayed", flight.destination_airport)
+        )
     return "Cancelled", flight.destination_airport
 
 
@@ -109,14 +130,19 @@ def allocate_hotels(session, crews, passengers, airport_code):
     save_vouchers(session, vouchers)
 
 
-def handle_flights(session, disruption_type, airport_codes, alternate_airport, severity):
+def handle_flights(
+    session, disruption_type, airport_codes, alternate_airport, severity
+):
     flights = get_flights_by_airports(session, airport_codes)
     flight_disruptions, affected_flight_ids = [], []
     parent_event_id = _generate_event_id()
 
     for idx, flight in enumerate(flights):
-        status, destination = bomb_decision(flight, airport_codes, alternate_airport) \
-            if disruption_type == "bomb" else weather_decision(flight, severity, alternate_airport)
+        status, destination = (
+            bomb_decision(flight, airport_codes, alternate_airport)
+            if disruption_type == "bomb"
+            else weather_decision(flight, severity, alternate_airport)
+        )
         flight.status = status
         flight.destination_airport = destination
         affected_flight_ids.append(flight.flight_id)
@@ -144,7 +170,12 @@ def suspend_crews_and_aircraft(session, affected_flight_ids):
     return crews, aircrafts
 
 
-def process_city_disruption(city: str, disruption_type: str, alternate_airport: str | None = None, severity: str | None = None):
+def process_city_disruption(
+    city: str,
+    disruption_type: str,
+    alternate_airport: str | None = None,
+    severity: str | None = None,
+):
     session, _ = get_session_and_engine()
     try:
         with session.begin():
@@ -153,11 +184,15 @@ def process_city_disruption(city: str, disruption_type: str, alternate_airport: 
                 raise ValueError(f"No airports found for city: {city}")
             airport_codes = [a.airport_code for a in airports]
 
-            disruption = create_disruption_record(session, disruption_type, city, airport_codes, severity)
+            disruption = create_disruption_record(
+                session, disruption_type, city, airport_codes, severity
+            )
             if disruption_type == "bomb":
                 close_airports(session, airport_codes)
 
-            flights, flight_disruptions, affected_flight_ids, _ = handle_flights(session, disruption_type, airport_codes, alternate_airport, severity)
+            flights, flight_disruptions, affected_flight_ids, _ = handle_flights(
+                session, disruption_type, airport_codes, alternate_airport, severity
+            )
             if flight_disruptions:
                 session.add_all(flight_disruptions)
 
@@ -171,7 +206,7 @@ def process_city_disruption(city: str, disruption_type: str, alternate_airport: 
             "type": disruption_type,
             "affected_airports": airport_codes,
             "flights_affected": len(flights),
-            "disruption_id": disruption.event_id
+            "disruption_id": disruption.event_id,
         }
     finally:
         session.close()
@@ -186,7 +221,7 @@ def get_dashboard_summary(session):
         "Total Incidents": total_incidents,
         "Escalated": escalated_count,
         "Passengers Affected": total_passengers,
-        "Automated Actions": total_incidents
+        "Automated Actions": total_incidents,
     }
 
 
@@ -199,10 +234,10 @@ def get_incident_feed(session):
             "Status": i.status,
             "Agent Action": "Auto" if i.status != "Resolved" else "Manual",
             "Escalated": i.requires_escalation,
-            "Passengers Affected": i.affected_passengers
-        } for i in incidents
+            "Passengers Affected": i.affected_passengers,
+        }
+        for i in incidents
     ]
-
 
 
 def get_incident_map_data(session):
@@ -210,14 +245,20 @@ def get_incident_map_data(session):
     data = []
     for incident in incidents:
         flight = session.query(Flight).filter_by(flight_id=incident.flight_id).first()
-        airport = session.query(Airport).filter_by(airport_code=flight.origin_airport).first() if flight else None
-        data.append({
-            "Flight": incident.flight_id,
-            "City": airport.city if airport else "Unknown",
-            "Latitude": 0,
-            "Longitude": 0,
-            "Status": incident.status
-        })
+        airport = (
+            session.query(Airport).filter_by(airport_code=flight.origin_airport).first()
+            if flight
+            else None
+        )
+        data.append(
+            {
+                "Flight": incident.flight_id,
+                "City": airport.city if airport else "Unknown",
+                "Latitude": 0,
+                "Longitude": 0,
+                "Status": incident.status,
+            }
+        )
     return data
 
 
@@ -228,9 +269,14 @@ def get_bookings(session, flight_id=None, city=None):
     elif city:
         airports = get_airports_by_city(session, city)
         airport_codes = [a.airport_code for a in airports]
-        flights = session.query(Flight).filter(
-            (Flight.origin_airport.in_(airport_codes)) | (Flight.destination_airport.in_(airport_codes))
-        ).all()
+        flights = (
+            session.query(Flight)
+            .filter(
+                (Flight.origin_airport.in_(airport_codes))
+                | (Flight.destination_airport.in_(airport_codes))
+            )
+            .all()
+        )
         flight_ids = [f.flight_id for f in flights]
     bookings = get_bookings_by_flight_ids(session, flight_ids)
     return [
@@ -238,10 +284,10 @@ def get_bookings(session, flight_id=None, city=None):
             "Flight": b.flight_id,
             "Passenger ID": b.passenger_id,
             "Booking Status": b.booking_status,
-            "Voucher Issued": b.is_disrupted
-        } for b in bookings
+            "Voucher Issued": b.is_disrupted,
+        }
+        for b in bookings
     ]
-
 
 
 def get_status_distribution(session):
@@ -272,9 +318,11 @@ def resolve_airport_location(airport_code: str, country: str):
 
 
 def get_dashboard_map_data(session):
-    disruptions = session.query(FlightDisruption).options(
-        joinedload(FlightDisruption.flight).joinedload(Flight.destination)
-    ).all()
+    disruptions = (
+        session.query(FlightDisruption)
+        .options(joinedload(FlightDisruption.flight).joinedload(Flight.destination))
+        .all()
+    )
     result = []
     for incident in disruptions:
         flight = incident.flight
@@ -284,20 +332,28 @@ def get_dashboard_map_data(session):
         lat, lon = resolve_airport_location(airport.airport_code, airport.country)
         if lat is None:
             continue
-        result.append({
-            "flight_number": flight.flight_number,
-            "city": airport.city,
-            "airport": airport.airport_name,
-            "status": incident.status,
-            "event_type": incident.event_type,
-            "affected_passengers": incident.affected_passengers,
-            "latitude": lat,
-            "longitude": lon
-        })
+        result.append(
+            {
+                "flight_number": flight.flight_number,
+                "city": airport.city,
+                "airport": airport.airport_name,
+                "status": incident.status,
+                "event_type": incident.event_type,
+                "affected_passengers": incident.affected_passengers,
+                "latitude": lat,
+                "longitude": lon,
+            }
+        )
     return result
 
 
-def create_disruption_record(session, disruption_type: str, city: str, airport_codes: list, severity: str | None = None) -> Disruption:
+def create_disruption_record(
+    session,
+    disruption_type: str,
+    city: str,
+    airport_codes: list,
+    severity: str | None = None,
+) -> Disruption:
     """
     Create a master disruption record in the Disruption table.
     Returns the created Disruption object.

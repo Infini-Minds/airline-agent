@@ -20,7 +20,7 @@ from tools.tools import (
     get_airport,
     get_passenger_booking,
     get_crew_assignment,
-    get_disruption
+    get_disruption,
 )
 
 load_dotenv()
@@ -32,11 +32,12 @@ TOOLS = [
     get_airport,
     get_passenger_booking,
     get_crew_assignment,
-    get_disruption
+    get_disruption,
 ]
 
 # Agent prompt template
-AGENT_PROMPT = PromptTemplate.from_template("""
+AGENT_PROMPT = PromptTemplate.from_template(
+    """
 You are a Bomb Threat Response Agent for an airline operations center.
 
 Your job is to analyze a bomb threat event and determine the appropriate response actions.
@@ -89,30 +90,24 @@ Begin!
 
 Event: {input}
 {agent_scratchpad}
-""")
+"""
+)
 
 
 def create_bomb_threat_agent():
     """Create and return the LangChain agent"""
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0
-    )
-    
-    agent = create_react_agent(
-        llm=llm,
-        tools=TOOLS,
-        prompt=AGENT_PROMPT
-    )
-    
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+
+    agent = create_react_agent(llm=llm, tools=TOOLS, prompt=AGENT_PROMPT)
+
     agent_executor = AgentExecutor(
         agent=agent,
         tools=TOOLS,
         verbose=True,
         handle_parsing_errors=True,
-        max_iterations=10
+        max_iterations=10,
     )
-    
+
     return agent_executor
 
 
@@ -120,38 +115,34 @@ def create_bomb_threat_agent():
 async def bomb_threat_agent(event: dict) -> dict:
     """
     Main bomb threat agent handler - compatible with decision_worker.py
-    
+
     Args:
         event: Dict containing event details from master_decision_table
-    
+
     Returns:
         Dict with status and response actions
     """
     print(f"[bomb_threat_agent] Handling event: {event.get('event_id')}")
-    
+
     try:
         # Create the agent
         agent_executor = create_bomb_threat_agent()
         event_input = json.dumps(event, indent=2)
         result = await agent_executor.ainvoke({"input": event_input})
         output = result.get("output", "{}")
-        
+
         try:
             response = json.loads(output)
         except json.JSONDecodeError:
             response = {
                 "status": "completed",
                 "raw_response": output,
-                "event_id": event.get("event_id")
+                "event_id": event.get("event_id"),
             }
-        
+
         print(f"[bomb_threat_agent] Completed: {response.get('summary', response)}")
         return response
-        
+
     except Exception as e:
         print(f"[bomb_threat_agent] Error: {e}")
-        return {
-            "status": "error",
-            "event_id": event.get("event_id"),
-            "error": str(e)
-        }
+        return {"status": "error", "event_id": event.get("event_id"), "error": str(e)}

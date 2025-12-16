@@ -6,10 +6,11 @@ from api.airline_service.threat_service import (
     get_status_distribution,
     get_escalation_rate,
     get_dashboard_map_data,
-    process_city_disruption
+    process_city_disruption,
 )
 
 api = Blueprint("airline_api", __name__)
+
 
 # DASHBOARD ENDPOINTS
 @api.route("/dashboard/summary", methods=["GET"])
@@ -68,7 +69,7 @@ def city_disruption():
     city_name = data.get("city")
     disruption_type = data.get("type")  # bomb | weather
     alternate_airport = data.get("alternate_airport")
-    severity = data.get("severity")     # Low | Medium | High
+    severity = data.get("severity")  # Low | Medium | High
 
     if not city_name or not disruption_type:
         return jsonify({"error": "city and type are required"}), 400
@@ -79,7 +80,7 @@ def city_disruption():
             city=city_name,
             disruption_type=disruption_type,
             alternate_airport=alternate_airport,
-            severity=severity
+            severity=severity,
         )
         return jsonify(result), 200
     except ValueError as ve:

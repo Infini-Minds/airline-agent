@@ -19,20 +19,15 @@ from tools.tools import (
     get_crew,
     get_crew_assignment,
     get_crew_duty_time,
-    get_disruption
+    get_disruption,
 )
 
 load_dotenv()
 
-TOOLS = [
-    get_flights,
-    get_crew,
-    get_crew_assignment,
-    get_crew_duty_time,
-    get_disruption
-]
+TOOLS = [get_flights, get_crew, get_crew_assignment, get_crew_duty_time, get_disruption]
 
-AGENT_PROMPT = PromptTemplate.from_template("""
+AGENT_PROMPT = PromptTemplate.from_template(
+    """
 You are a Crew Disruption Resolution Agent for an airline operations center.
 
 Your task is to resolve crew-related disruptions such as:
@@ -91,27 +86,21 @@ Begin!
 Event:
 {input}
 {agent_scratchpad}
-""")
+"""
+)
 
 
 def create_crew_agent():
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0
-    )
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-    agent = create_react_agent(
-        llm=llm,
-        tools=TOOLS,
-        prompt=AGENT_PROMPT
-    )
+    agent = create_react_agent(llm=llm, tools=TOOLS, prompt=AGENT_PROMPT)
 
     return AgentExecutor(
         agent=agent,
         tools=TOOLS,
         verbose=True,
         handle_parsing_errors=True,
-        max_iterations=8
+        max_iterations=8,
     )
 
 
@@ -123,9 +112,7 @@ async def crew_agent(event: dict) -> dict:
         agent_executor = create_crew_agent()
         event_input = json.dumps(event, indent=2)
 
-        result = await agent_executor.ainvoke({
-            "input": event_input
-        })
+        result = await agent_executor.ainvoke({"input": event_input})
 
         output = result.get("output", "{}")
 
@@ -135,7 +122,7 @@ async def crew_agent(event: dict) -> dict:
             response = {
                 "status": "completed",
                 "raw_response": output,
-                "event_id": event.get("event_id")
+                "event_id": event.get("event_id"),
             }
 
         print(f"[crew_agent] Completed: {response}")
@@ -143,8 +130,4 @@ async def crew_agent(event: dict) -> dict:
 
     except Exception as e:
         print(f"[crew_agent] Error: {e}")
-        return {
-            "status": "error",
-            "event_id": event.get("event_id"),
-            "error": str(e)
-        }
+        return {"status": "error", "event_id": event.get("event_id"), "error": str(e)}

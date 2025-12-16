@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 from urllib.parse import quote
 from datetime import datetime, timezone
+
 # import datetime
 
 load_dotenv()
@@ -34,7 +35,8 @@ async def get_pool():
 async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
-        await conn.execute("""
+        await conn.execute(
+            """
         DROP TABLE IF EXISTS master_decision_table;
 
         CREATE TABLE master_decision_table (
@@ -50,7 +52,8 @@ async def init_db():
             processed_at TIMESTAMPTZ,
             incident_date TIMESTAMPTZ DEFAULT now()
         );
-    """)
+    """
+        )
 
 
 async def insert_master_decision(
@@ -74,7 +77,7 @@ async def insert_master_decision(
             json.dumps(selected_agents),
             reason,
             severity,
-            incident_date
+            incident_date,
         )
         return dict(row)
 
