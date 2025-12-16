@@ -8,6 +8,7 @@ from database import (
 from agents.weather_agent import weather_agent
 from agents.monitoring import monitoring_agent
 from agents.bomb_threat_agent import bomb_threat_agent
+from agents.crew_agent import crew_agent
 import json
 
 AGENT_MAP = {

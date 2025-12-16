@@ -1,72 +1,150 @@
-import asyncpg
-from database import get_pool
+"""
+Crew Disruption Agent - LangChain Implementation
+
+Handles:
+- Crew duty time exceeded
+- Crew unavailable
+- Crew legality / rest issues
+"""
+
+import json
+from dotenv import load_dotenv
+
+from langchain_openai import ChatOpenAI
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain_core.prompts import PromptTemplate
+
+from tools.tools import (
+    get_flights,
+    get_crew,
+    get_crew_assignment,
+    get_crew_duty_time,
+    get_disruption
+)
+
+load_dotenv()
+
+TOOLS = [
+    get_flights,
+    get_crew,
+    get_crew_assignment,
+    get_crew_duty_time,
+    get_disruption
+]
+
+AGENT_PROMPT = PromptTemplate.from_template("""
+You are a Crew Disruption Resolution Agent for an airline operations center.
+
+Your task is to resolve crew-related disruptions such as:
+- Crew duty time exceeded
+- Crew unavailable
+- Crew legality issues
+
+You MUST:
+1. Use get_disruption to understand the crew issue
+2. Use get_flights to identify the affected flight
+3. Use get_crew_assignment to find current crew
+4. Use get_crew_duty_time to validate legality
+5. Use get_crew to find available replacement crew
+
+Decision rules:
+- If legal replacement crew exists → ASSIGN_CREW
+- If no crew and departure < 8 hours → RESCHEDULE
+- If no crew and departure 8–24 hours → RESCHEDULE_AND_HOTEL
+- If no crew and departure > 24 hours → CANCEL_AND_VOUCHER
+
+Return the response in EXACT JSON format:
+{{
+  "status": "completed",
+  "flight_id": <flight_id>,
+  "action": "<assign_crew | reschedule | reschedule_and_hotel | cancel_and_voucher>",
+  "assigned_crew": {{
+    "crew_id": <id>,
+    "role": "<role>"
+  }},
+  "reason": "<short explanation>"
+}}
+
+IMPORTANT:
+- Use ONLY the tools
+- Filter data yourself
+- Do NOT invent data
+- Return ONLY JSON
+
+You have access to the following tools:
+{tools}
+
+Tool names:
+{tool_names}
+
+Use the following format:
+Thought: analyze crew disruption
+Action: <tool name>
+Action Input: <tool input>
+Observation: <tool output>
+...
+Thought: I have enough information
+Final Answer: <JSON>
+
+Begin!
+
+Event:
+{input}
+{agent_scratchpad}
+""")
 
 
-async def crew_agent(event):
-    pool = await get_pool()
-    flight_id = event.get("flight_id")
+def create_crew_agent():
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0
+    )
 
-    async with pool.acquire() as conn:
-        flight = await conn.fetchrow(
-            "SELECT * FROM flight WHERE flight_id=$1", flight_id
-        )
-        if not flight:
-            return {"error": "flight_not_found"}
+    agent = create_react_agent(
+        llm=llm,
+        tools=TOOLS,
+        prompt=AGENT_PROMPT
+    )
 
-        # Compute time to departure (hours)
-        ttd = await conn.fetchval(
-            """
-            SELECT EXTRACT(EPOCH FROM (
-                (scheduled_departure AT TIME ZONE 'UTC') - now()
-            ))/3600
-            FROM flight WHERE flight_id=$1
-        """,
-            flight_id,
-        )
+    return AgentExecutor(
+        agent=agent,
+        tools=TOOLS,
+        verbose=True,
+        handle_parsing_errors=True,
+        max_iterations=8
+    )
 
-        # Get legal local crew
-        crew = await conn.fetch(
-            """
-            SELECT * FROM crew
-            WHERE current_location=$1
-              AND certification_status='valid'
-              AND status='active'
-              AND remaining_hours >= 2
-              AND requires_rest=false
-        """,
-            flight["origin_airport"],
-        )
 
-        if crew:
-            c = crew[0]
-            await conn.execute(
-                """
-                INSERT INTO crew_assignment(crew_id, flight_id, role, status)
-                VALUES($1,$2,$3,'assigned')
-            """,
-                c["crew_id"],
-                flight_id,
-                c["role"],
-            )
+# ENTRYPOINT FOR decision_worker
+async def crew_agent(event: dict) -> dict:
+    print(f"[crew_agent] Handling event: {event.get('event_id')}")
 
-            return {
-                "flight_id": flight_id,
-                "assigned": {"crew_id": c["crew_id"], "role": c["role"]},
-                "action": "assign_local_crew",
-                "ttd_hours": float(ttd),
+    try:
+        agent_executor = create_crew_agent()
+        event_input = json.dumps(event, indent=2)
+
+        result = await agent_executor.ainvoke({
+            "input": event_input
+        })
+
+        output = result.get("output", "{}")
+
+        try:
+            response = json.loads(output)
+        except json.JSONDecodeError:
+            response = {
+                "status": "completed",
+                "raw_response": output,
+                "event_id": event.get("event_id")
             }
 
-        # Passenger policy
-        if ttd < 8:
-            action = "reschedule"
-        elif ttd <= 24:
-            action = "reschedule_and_hotel"
-        else:
-            action = "cancel_and_voucher"
+        print(f"[crew_agent] Completed: {response}")
+        return response
 
+    except Exception as e:
+        print(f"[crew_agent] Error: {e}")
         return {
-            "flight_id": flight_id,
-            "assigned": None,
-            "action": action,
-            "ttd_hours": float(ttd),
+            "status": "error",
+            "event_id": event.get("event_id"),
+            "error": str(e)
         }
