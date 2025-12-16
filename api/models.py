@@ -340,7 +340,7 @@ class Rebooking(Base):
 # ----------------------
 class HotelBooking(Base):
     __tablename__ = "hotel_booking"
-    hotel_booking_id = Column(String, primary_key=True, index=True)
+    hotel_booking_id = Column(String, primary_key=True, index=True, autoincrement=True)
     crew_id = Column(String, ForeignKey("crew.crew_id"), nullable=True)
     passenger_id = Column(String, ForeignKey("passenger.passenger_id"), nullable=True)
     hotel_name = Column(String)
