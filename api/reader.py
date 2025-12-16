@@ -10,7 +10,6 @@ from urllib.parse import quote_plus
 
 CONFIG_DIR = Path(r"C:\Users\OrCon\airlines\secrets")
 
-
 def read_value(filename, cast=str):
     path = CONFIG_DIR / filename
 

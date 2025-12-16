@@ -1,50 +1,53 @@
 from flask import Flask, Blueprint, request, jsonify
 from api.reader import get_session_and_engine
 from api.airline_service.threat_service import (
-    process_city_bomb_threat,
     get_incident_feed,
     get_bookings,
     get_status_distribution,
     get_escalation_rate,
-    get_dashboard_map_data
+    get_dashboard_map_data,
+    process_city_disruption
 )
 
 api = Blueprint("airline_api", __name__)
 
-# -------------------
-# DASHBOARD SUMMARY
-# -------------------
+# DASHBOARD ENDPOINTS
 @api.route("/dashboard/summary", methods=["GET"])
 def dashboard_summary():
     session, _ = get_session_and_engine()
     try:
-        return jsonify(get_incident_feed(session))
+        return jsonify(get_incident_feed(session)), 200
     finally:
         session.close()
 
 
-# -------------------
-# BOOKINGS & VOUCHERS
-# -------------------
-@api.route("/bookings", methods=["GET"])
-def bookings():
-    flight = request.args.get("flight")
-    city = request.args.get("city")
+@api.route("/dashboard/map", methods=["GET"])
+def dashboard_map():
     session, _ = get_session_and_engine()
     try:
-        return jsonify(get_bookings(session, flight, city))
+        return jsonify(get_dashboard_map_data(session)), 200
     finally:
         session.close()
 
 
-# -------------------
-# ANALYTICS
-# -------------------
+# BOOKINGS & VOUCHERS
+@api.route("/bookings", methods=["GET"])
+def bookings():
+    flight_id = request.args.get("flight")
+    city_name = request.args.get("city")
+    session, _ = get_session_and_engine()
+    try:
+        return jsonify(get_bookings(session, flight_id=flight_id, city=city_name)), 200
+    finally:
+        session.close()
+
+
+# ANALYTICS ENDPOINTS
 @api.route("/analytics/status-distribution", methods=["GET"])
 def analytics_status():
     session, _ = get_session_and_engine()
     try:
-        return jsonify(get_status_distribution(session))
+        return jsonify(get_status_distribution(session)), 200
     finally:
         session.close()
 
@@ -53,37 +56,42 @@ def analytics_status():
 def analytics_escalation():
     session, _ = get_session_and_engine()
     try:
-        return jsonify(get_escalation_rate(session))
+        return jsonify(get_escalation_rate(session)), 200
     finally:
         session.close()
 
 
-@api.route("/bomb-threat/city", methods=["POST"])
-def bomb_threat_city():
-    city = request.args.get("city")
-    alt = request.args.get("alternate_airport")
-    if not city:
-        return jsonify({"error": "city required"}), 400
+# CITY DISRUPTION
+@api.route("/disruption/city", methods=["POST"])
+def city_disruption():
+    data = request.json or {}
+    city_name = data.get("city")
+    disruption_type = data.get("type")  # bomb | weather
+    alternate_airport = data.get("alternate_airport")
+    severity = data.get("severity")     # Low | Medium | High
+
+    if not city_name or not disruption_type:
+        return jsonify({"error": "city and type are required"}), 400
+
     session, _ = get_session_and_engine()
     try:
-        with session.begin():
-            return jsonify(process_city_bomb_threat(session, city, alt)), 200
-    except Exception as e:
-        session.rollback()
-        return jsonify({"error": str(e)}), 500
+        result = process_city_disruption(
+            city=city_name,
+            disruption_type=disruption_type,
+            alternate_airport=alternate_airport,
+            severity=severity
+        )
+        return jsonify(result), 200
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 404
+    except Exception as ex:
+        print(ex)
+        return jsonify({"error": "Disruption handling failed"}), 500
     finally:
         session.close()
 
-@api.route("/dashboard/map", methods=["GET"])
-def dashboard_map():
-    print("inside map data")
-    session, _ = get_session_and_engine()
-    try:
-        return jsonify(get_dashboard_map_data(session))
-    finally:
-        session.close()
 
-
+# APP CREATION
 def create_app():
     app = Flask(__name__)
     app.register_blueprint(api)
