@@ -27,7 +27,7 @@ Your ONLY job:
 - weather_agent → weather disruptions, wind, fog, storms, crosswinds, METAR/SIGMET issues.
 - crew_agent → crew legality, hours, flight duty time, rest issues, crew shortage.
 - traffic_agent → runway closure, taxiway congestion, ATC flow programs, airport capacity.
-- maintenance_agent → mechanical failures, MEL/CDL, technical faults.
+- maintainance_agent → mechanical failures, MEL/CDL, technical faults.
 - bomb_threat_agent → bomb threats, security incidents, terminal evacuations, security alerts.
 - monitoring_agent → everything else / low severity / not enough info.
 
@@ -67,15 +67,6 @@ def _call_openai_sync(prompt: str, max_tokens: int = 200):
 
 
 async def ai_decide_agent(event: dict, db_rules: list = None) -> dict:
-    """
-    Returns:
-      {
-        "selected_agents": [...],
-        "reason": "..."
-      }
-    """
-
-    # Build user prompt
     prompt = (
         "EVENT:\n"
         + json.dumps(event, indent=2)
@@ -89,12 +80,18 @@ async def ai_decide_agent(event: dict, db_rules: list = None) -> dict:
     with ThreadPoolExecutor(max_workers=1) as exe:
         raw = await loop.run_in_executor(exe, _call_openai_sync, prompt)
 
-    # Attempt strict JSON decode
     try:
-        return json.loads(raw)
+        result = json.loads(raw)
+
+        # ✅ Crew agent enforcement
+        if "crew" in json.dumps(event).lower():
+            result["selected_agents"] = list(
+                set(result.get("selected_agents", []) + ["crew_agent"])
+            )
+
+        return result
 
     except Exception:
-        # If the model ever breaks JSON, force safe fallback
         return {
             "selected_agents": ["monitoring_agent"],
             "reason": "fallback - invalid JSON from model",

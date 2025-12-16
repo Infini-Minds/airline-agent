@@ -4,6 +4,16 @@ import httpx
 BASE_URL = "http://localhost:8001"
 
 
+def safe_json(resp):
+    if resp.status_code == 204:
+        return []
+    try:
+        data = resp.json()
+        return data if data is not None else []
+    except Exception:
+        return []
+
+
 @tool
 async def get_aircraft():
     """Get all aircraft"""
@@ -37,7 +47,7 @@ async def get_crew():
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"{BASE_URL}/crew/")
         resp.raise_for_status()  # Raises exception if API fails
-        return resp.json()
+        return safe_json(resp)
 
 
 @tool
@@ -46,7 +56,7 @@ async def get_crew_assignment():
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"{BASE_URL}/crew_assignment/")
         resp.raise_for_status()  # Raises exception if API fails
-        return resp.json()
+        return safe_json(resp)
 
 
 @tool
@@ -55,7 +65,7 @@ async def get_crew_duty_time():
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"{BASE_URL}/crew_duty_time/")
         resp.raise_for_status()  # Raises exception if API fails
-        return resp.json()
+        return safe_json(resp)
 
 
 @tool
@@ -64,7 +74,7 @@ async def get_disruption():
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"{BASE_URL}/disruption/")
         resp.raise_for_status()  # Raises exception if API fails
-        return resp.json()
+        return safe_json(resp)
 
 
 @tool
@@ -82,7 +92,7 @@ async def get_flights():
     async with httpx.AsyncClient() as client:
         resp = await client.get(f"{BASE_URL}/flight/")
         resp.raise_for_status()  # Raises exception if API fails
-        return resp.json()
+        return safe_json(resp)
 
 
 @tool
