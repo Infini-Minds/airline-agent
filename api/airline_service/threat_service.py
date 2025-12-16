@@ -85,9 +85,10 @@ def allocate_hotels(session, crews, passengers, airport_code):
                 continue
             hotel.rooms_available -= 1
             hotel.rooms_booked += 1
+            hotel_booking_id = _generate_booking_id()
             hotel_bookings.append(
                 HotelBooking(
-                    hotel_booking_id=_generate_booking_id(),
+                    hotel_booking_id=hotel_booking_id,
                     crew_id=crew_id,
                     passenger_id=passenger_id,
                     hotel_name=hotel.hotel_name,
@@ -118,11 +119,11 @@ def allocate_hotels(session, crews, passengers, airport_code):
         if not book_room(passenger_id=passenger.passenger_id):
             vouchers.append(
                 Voucher(
-                    passenger_id=passenger.passenger_id,
+                    voucher_id=_generate_voucher_ref(),
+                    booking_id=passenger.booking_id,
                     voucher_type="Meal Voucher",
                     expiry_date=current_time + timedelta(days=1),
                     status="Issued",
-                    voucher_reference=_generate_voucher_ref(),
                 )
             )
 
