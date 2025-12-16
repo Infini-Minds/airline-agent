@@ -32,9 +32,9 @@ async def notify_rescheduled_passengers():
         if not passenger_email:
             print(f"[notify_agent] No email for passenger {passenger_id}")
             results.append({"passenger_id": passenger_id, "status": "email_missing"})
-            continue
+            break
 
-        # Compose email
+            # Compose email
         subject = f"Flight {flight_id} Rescheduled Notification"
         body = f"""
 Dear {passenger_name},
@@ -70,7 +70,7 @@ Airline Operations Team
                 "reason": reason,
             }
         )
-
+        break
     await conn.close()
 
     return {"status": "completed", "total_passengers": len(rows), "results": results}
