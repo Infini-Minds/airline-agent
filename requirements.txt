@@ -10,3 +10,4 @@ langchain
 langchain-openai
 langchain-community
 openai >= 1.0.0
+sqlparse>=0.4.4

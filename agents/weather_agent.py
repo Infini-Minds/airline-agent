@@ -11,28 +11,27 @@ async def notify_rescheduled_passengers():
     results = []
 
     async with pool.acquire() as conn:
-        rows = await conn.fetch("""
+        rows = await conn.fetch(
+            """
                 SELECT booking_id, flight_id, passenger_id, passenger_name, passenger_email,
                        airport_code, reason, rescheduled_at
                 FROM public.rescheduled_bookings
-            """)
+            """
+        )
 
     for row in rows:
-        booking_id = row['booking_id']
-        flight_id = row['flight_id']
-        passenger_id = row['passenger_id']
-        passenger_name = row['passenger_name']
-        passenger_email = row['passenger_email']
-        airport_code = row['airport_code']
-        reason = row['reason']
-        rescheduled_at = row['rescheduled_at']
+        booking_id = row["booking_id"]
+        flight_id = row["flight_id"]
+        passenger_id = row["passenger_id"]
+        passenger_name = row["passenger_name"]
+        passenger_email = row["passenger_email"]
+        airport_code = row["airport_code"]
+        reason = row["reason"]
+        rescheduled_at = row["rescheduled_at"]
 
         if not passenger_email:
             print(f"[notify_agent] No email for passenger {passenger_id}")
-            results.append({
-                "passenger_id": passenger_id,
-                "status": "email_missing"
-            })
+            results.append({"passenger_id": passenger_id, "status": "email_missing"})
             continue
 
         # Compose email
@@ -60,23 +59,21 @@ Airline Operations Team
         else:
             print(f"[notify_agent] Email FAILED to {passenger_email}")
 
-        results.append({
-            "passenger_id": passenger_id,
-            "email": passenger_email,
-            "status": status,
-            "booking_id": booking_id,
-            "flight_id": flight_id,
-            "rescheduled_at": rescheduled_at,
-            "reason": reason
-        })
+        results.append(
+            {
+                "passenger_id": passenger_id,
+                "email": passenger_email,
+                "status": status,
+                "booking_id": booking_id,
+                "flight_id": flight_id,
+                "rescheduled_at": rescheduled_at,
+                "reason": reason,
+            }
+        )
 
     await conn.close()
 
-    return {
-        "status": "completed",
-        "total_passengers": len(rows),
-        "results": results
-    }
+    return {"status": "completed", "total_passengers": len(rows), "results": results}
 
 
 async def weather_agent(event):
@@ -86,10 +83,7 @@ async def weather_agent(event):
     """
     print("[weather_agent] Handling event:", event.get("event_id"))
 
-    llm = ChatOpenAI(
-        temperature=0,
-        model="gpt-4o-mini"
-    )
+    llm = ChatOpenAI(temperature=0, model="gpt-4o-mini")
 
     # The SQL generator expects a LIST of incidents
     incidents = [event]
@@ -97,7 +91,4 @@ async def weather_agent(event):
     await generate_and_execute_query(llm, incidents)
     await notify_rescheduled_passengers()
 
-    return {
-        "status": "rescheduling_completed",
-        "event_id": event.get("incident_id")
-    }
+    return {"status": "rescheduling_completed", "event_id": event.get("incident_id")}

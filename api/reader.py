@@ -10,12 +10,14 @@ from urllib.parse import quote_plus
 
 CONFIG_DIR = Path(r"C:\Users\OrCon\airlines\secrets")
 
+
 def read_value(filename, cast=str):
     path = CONFIG_DIR / filename
 
     if not path.exists():
         raise FileNotFoundError(f"Missing secret file: {path}")
     return cast(path.read_text().strip())
+
 
 pwd = read_value("db_password.txt")
 # Central DB config
@@ -39,11 +41,7 @@ def get_db_url():
 
 
 # Create engine ONCE
-engine = create_engine(
-    get_db_url(),
-    poolclass=NullPool,
-    json_deserializer=lambda x: x
-)
+engine = create_engine(get_db_url(), poolclass=NullPool, json_deserializer=lambda x: x)
 
 
 def get_session_and_engine():

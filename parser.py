@@ -17,6 +17,8 @@ client = OpenAI()
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 today_str = datetime.now().strftime("%Y-%m-%d")
+
+
 # --------------- PDF extraction ---------------
 def extract_text_from_pdf(file_obj) -> str:
     """
@@ -33,6 +35,7 @@ def extract_text_from_pdf(file_obj) -> str:
             text += page_text + "\n"
     return text.strip()
 
+
 # --------------- helper to call OpenAI safely ---------------
 @traceable(name="get_agent_details")
 def _call_openai(prompt: str, max_tokens: int = 1000) -> str:
@@ -40,13 +43,17 @@ def _call_openai(prompt: str, max_tokens: int = 1000) -> str:
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are an intelligent IRROPS Event Extractor. Return only valid JSON."},
-            {"role": "user", "content": prompt}
+            {
+                "role": "system",
+                "content": "You are an intelligent IRROPS Event Extractor. Return only valid JSON.",
+            },
+            {"role": "user", "content": prompt},
         ],
         temperature=0,
         max_tokens=max_tokens,
     )
     return response.choices[0].message.content.strip()
+
 
 # --------------- parse chunk ---------------
 def _repair_and_load_json(raw_output: str):
@@ -59,25 +66,26 @@ def _repair_and_load_json(raw_output: str):
         # attempt simple repairs: close unmatched brackets/quotes
         repaired = raw_output
         # close arrays/objects
-        open_sq = repaired.count('[') - repaired.count(']')
+        open_sq = repaired.count("[") - repaired.count("]")
         if open_sq > 0:
-            repaired += ']' * open_sq
-        open_br = repaired.count('{') - repaired.count('}')
+            repaired += "]" * open_sq
+        open_br = repaired.count("{") - repaired.count("}")
         if open_br > 0:
-            repaired += '}' * open_br
+            repaired += "}" * open_br
         # If still broken, try to trim to last complete array/object
         try:
             return json.loads(repaired)
         except Exception:
             # As a last resort, try to find the first '[' and last ']' and substring
-            start = repaired.find('[')
-            end = repaired.rfind(']')
+            start = repaired.find("[")
+            end = repaired.rfind("]")
             if start != -1 and end != -1 and end > start:
                 try:
-                    return json.loads(repaired[start:end+1])
+                    return json.loads(repaired[start : end + 1])
                 except Exception:
                     pass
             raise
+
 
 def parse_event_chunk(text_chunk: str) -> List[Dict]:
     """
@@ -123,10 +131,17 @@ def parse_event_chunk(text_chunk: str) -> List[Dict]:
     for ev in events:
         ev.setdefault("event_id", str(ev.get("event_id", "")))
         # ensure lists
-        for k in ("event_type","severity","impact_description","airport_code","actions"):
+        for k in (
+            "event_type",
+            "severity",
+            "impact_description",
+            "airport_code",
+            "actions",
+        ):
             if k in ev and not isinstance(ev[k], list):
                 ev[k] = [ev[k]]
     return events
+
 
 async def parse_event_data(full_text: str, chunk_size: int = 3000) -> List[Dict]:
     """
@@ -152,7 +167,9 @@ async def parse_event_data(full_text: str, chunk_size: int = 3000) -> List[Dict]
     loop = asyncio.get_event_loop()
     results = []
     with ThreadPoolExecutor(max_workers=2) as exe:
-        tasks = [loop.run_in_executor(exe, parse_event_chunk, chunk) for chunk in chunks]
+        tasks = [
+            loop.run_in_executor(exe, parse_event_chunk, chunk) for chunk in chunks
+        ]
         completed = await asyncio.gather(*tasks)
         for evs in completed:
             results.extend(evs)

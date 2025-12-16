@@ -3,6 +3,7 @@ from langchain.schema import HumanMessage, SystemMessage
 import re
 from database import get_pool
 
+
 async def extract_sql(llm_output: str) -> list[str]:
     """
     Extract SQL code block(s) from LLM response and split into individual statements.
@@ -30,6 +31,8 @@ async def execute_sql(statements: list[str]):
                 print(f"✅ Step {i} executed successfully")
             except Exception as e:
                 print(f"❌ Step {i} failed:", e)
+
+
 # -----------------------------
 # SQL GENERATION (LLM ONLY)
 # -----------------------------
@@ -161,7 +164,7 @@ async def generate_and_execute_query(llm, incidents):
     - Output SQL ONLY
 
             """
-        )
+        ),
     ]
     result = await llm.ainvoke(messages)
 

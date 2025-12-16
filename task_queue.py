@@ -4,6 +4,7 @@ import traceback
 
 TASK_QUEUE = asyncio.Queue()
 
+
 async def task_worker():
     print("[task_worker] started")
     while True:

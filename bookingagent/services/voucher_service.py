@@ -1,6 +1,7 @@
 from models.voucher import Voucher
 from datetime import datetime
 
+
 class VoucherService:
     def __init__(self):
         self.vouchers = {}

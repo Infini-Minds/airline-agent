@@ -5,7 +5,7 @@ from services.booking_service import BookingService
 class VoucherAgent:
     def __init__(self):
         self.voucher_service = VoucherService()
-        self.booking_service = BookingService()   # Only needed if validating booking
+        self.booking_service = BookingService()  # Only needed if validating booking
 
     def issue_voucher(self, booking_id, amount):
         """

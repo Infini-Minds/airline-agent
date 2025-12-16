@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # load .env values
 
-SMTP_EMAIL = os.getenv("SMTP_EMAIL")        # your Gmail address
+SMTP_EMAIL = os.getenv("SMTP_EMAIL")  # your Gmail address
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")  # 16-digit App Password
 
 
