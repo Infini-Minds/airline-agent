@@ -58,105 +58,114 @@ async def generate_and_execute_query(llm, incidents):
         ),
         HumanMessage(
             content=f"""
-        You are generating SQL for a PRODUCTION PostgreSQL system.
-        Incorrect SQL will break execution.
+            You are generating SQL for a PRODUCTION PostgreSQL system.
+    Incorrect SQL will break execution.
 
-        Context:
-        High-severity weather incidents detected in the last 6 hours:
+    Context:
+    High-severity weather incidents detected in the last 6 hours:
 
-        {incident_str}
+    {incident_str}
 
-        Your task:
-        Reschedule passenger bookings impacted by HIGH severity incidents.
+    Your task:
+    Reschedule passenger bookings impacted by HIGH severity incidents
+    AND capture passenger email + reason for notification.
 
-        -------------------------------------------------
-        ABSOLUTE RULES (DO NOT VIOLATE)
-        -------------------------------------------------
-        1. Use ONLY PostgreSQL syntax.
-        2. Use ONLY the public schema:
-           - public.passenger_booking
-           - public.flight
-           - public.master_decision_table
-           - public.rescheduled_bookings
-        3. DO NOT invent or assume columns.
-        4. DO NOT join master_decision_table using flight_id.
-           It MUST be joined using CROSS JOIN.
-        5. JSON fields MUST be handled using:
-           - jsonb_array_elements_text(...)
-        6. ALWAYS wrap OR conditions in parentheses before AND filters.
-        7. NEVER cast booking_id unless explicitly required.
-        8. Use mdt.created_at for “last 6 hours” filtering (NOT event_json time).
-        9. Output ONLY SQL inside ONE ```sql``` code block.
-        10. Statements MUST be executable step-by-step.
+    -------------------------------------------------
+    ABSOLUTE RULES (DO NOT VIOLATE)
+    -------------------------------------------------
+    1. Use ONLY PostgreSQL syntax.
+    2. Use ONLY the public schema:
+       - public.passenger_booking
+       - public.passenger
+       - public.flight
+       - public.master_decision_table
+       - public.rescheduled_bookings
+    3. DO NOT invent or assume columns.
+    4. master_decision_table MUST be joined using CROSS JOIN only.
+    5. JSON fields MUST be handled using:
+       - jsonb_array_elements_text(...)
+    6. ALWAYS wrap OR conditions in parentheses before AND filters.
+    7. NEVER cast booking_id unless explicitly required.
+    8. Use mdt.created_at for “last 6 hours” filtering.
+    9. Output ONLY SQL inside ONE ```sql``` code block.
+    10. Statements MUST be executable step-by-step.
 
-        -------------------------------------------------
-        STEP 1: CREATE TABLE
-        -------------------------------------------------
-        Create table IF NOT EXISTS:
+    -------------------------------------------------
+    STEP 1: CREATE TABLE
+    -------------------------------------------------
+    Create table IF NOT EXISTS:
 
-        public.rescheduled_bookings (
-            booking_id VARCHAR,
-            flight_id VARCHAR,
-            passenger_id VARCHAR,
-            airport_code VARCHAR,
-            rescheduled_at TIMESTAMP
-        )
+    public.rescheduled_bookings (
+        booking_id VARCHAR,
+        flight_id VARCHAR,
+        passenger_id VARCHAR,
+        passenger_name VARCHAR,
+        passenger_email VARCHAR,
+        airport_code VARCHAR,
+        reason TEXT,
+        rescheduled_at TIMESTAMP
+    )
 
-        -------------------------------------------------
-        STEP 2: INSERT DATA (THIS MUST MATCH EXACT LOGIC)
-        -------------------------------------------------
-        INSERT INTO public.rescheduled_bookings using:
+    -------------------------------------------------
+    STEP 2: INSERT DATA (STRICT LOGIC)
+    -------------------------------------------------
+    INSERT INTO public.rescheduled_bookings using:
 
-        FROM public.passenger_booking pb
-        JOIN public.flight f
-            ON pb.flight_id = f.flight_id
-        CROSS JOIN public.master_decision_table mdt
-        CROSS JOIN LATERAL
-            jsonb_array_elements_text(mdt.event_json->'airport_code')
-            AS ac(airport_code)
+    FROM public.passenger_booking pb
+    JOIN public.passenger p
+        ON pb.passenger_id = p.passenger_id
+    JOIN public.flight f
+        ON pb.flight_id = f.flight_id
+    CROSS JOIN public.master_decision_table mdt
+    CROSS JOIN LATERAL
+        jsonb_array_elements_text(mdt.event_json->'airport_code')
+        AS ac(airport_code)
 
-        WHERE conditions MUST BE:
+    WHERE conditions MUST BE:
 
-        (
-            f.origin_airport = ac.airport_code
-            OR f.destination_airport = ac.airport_code
-        )
-        AND EXISTS (
-            SELECT 1
-            FROM jsonb_array_elements_text(mdt.event_json->'severity') s
-            WHERE s = 'High'
-        )
-        AND mdt.created_at >= NOW() - INTERVAL '6 hours'
+    (
+        f.origin_airport = ac.airport_code
+        OR f.destination_airport = ac.airport_code
+    )
+    AND EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements_text(mdt.event_json->'severity') s
+        WHERE s = 'High'
+    )
+    AND mdt.created_at >= NOW() - INTERVAL '6 hours'
 
-        SELECT columns MUST BE:
-        - pb.booking_id
-        - f.flight_id
-        - pb.passenger_id
-        - ac.airport_code
-        - NOW() AS rescheduled_at
+    SELECT columns MUST BE:
+    - pb.booking_id
+    - f.flight_id
+    - pb.passenger_id
+    - p.first_name
+    - p.email
+    - ac.airport_code
+    - mdt.reason
+    - NOW() AS rescheduled_at
 
-        -------------------------------------------------
-        STEP 3: UPDATE BOOKINGS
-        -------------------------------------------------
-        UPDATE public.passenger_booking
-        SET booking_status = 'RESCHEDULED'
-        WHERE booking_id IN (
-            SELECT booking_id FROM public.rescheduled_bookings
-        )
+    -------------------------------------------------
+    STEP 3: UPDATE BOOKINGS
+    -------------------------------------------------
+    UPDATE public.passenger_booking
+    SET booking_status = 'RESCHEDULED'
+    WHERE booking_id IN (
+        SELECT booking_id FROM public.rescheduled_bookings
+    )
 
-        -------------------------------------------------
-        FINAL OUTPUT RULES
-        -------------------------------------------------
-        - Do NOT explain anything
-        - Do NOT add comments
-        - Do NOT change column types
-        - Do NOT remove parentheses
-        - Do NOT use JOIN instead of CROSS JOIN
-        - Output SQL ONLY
-        """
+    -------------------------------------------------
+    FINAL OUTPUT RULES
+    -------------------------------------------------
+    - Do NOT explain anything
+    - Do NOT add comments
+    - Do NOT change column names or types
+    - Do NOT remove parentheses
+    - Do NOT use JOIN instead of CROSS JOIN for master_decision_table
+    - Output SQL ONLY
+
+            """
         ),
     ]
-
     result = await llm.ainvoke(messages)
 
     # print("\n================ GENERATED SQL ================\n")

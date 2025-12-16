@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 import asyncio
 from openai import OpenAI
 from datetime import datetime
-
+from langsmith import traceable
 
 load_dotenv()
 client = OpenAI()
@@ -37,6 +37,7 @@ def extract_text_from_pdf(file_obj) -> str:
 
 
 # --------------- helper to call OpenAI safely ---------------
+@traceable(name="get_agent_details")
 def _call_openai(prompt: str, max_tokens: int = 1000) -> str:
     # synchronous call; we'll call via to_thread from async code if needed
     response = client.chat.completions.create(
