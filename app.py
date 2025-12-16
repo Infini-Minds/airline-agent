@@ -13,6 +13,9 @@ from io import BytesIO
 from dotenv import load_dotenv
 import json
 import os
+import requests
+
+url = "http://localhost:5000"
 
 load_dotenv()
 
@@ -79,6 +82,30 @@ async def upload_pdf(file: UploadFile = File(...)):
             selected_agents=selected_agents,
             reason=reason,
         )
+        if event["event_type"][0].lower() in ("weather", "bomb"):
+            data = {
+                "type": event["event_type"][0].lower(),
+                "severity": event.get("severity"),
+                "airport_code": event.get("airport_code"),
+                "alternate_airport": None
+            }
+
+            DISRUPTION_API_URL = f"{url}/disruption/city"
+            try:
+                response = requests.post(
+                    DISRUPTION_API_URL,
+                    json=data,
+                    timeout=5
+                )
+                print("Disruption API status:", response.status_code)
+                try:
+                    print("Disruption API response:", response.json())
+                except ValueError:
+                    print("Disruption API response (text):", response.text)
+
+            except requests.exceptions.RequestException as e:
+                print("Disruption API call failed:", str(e))
+
 
         # Immediately enqueue agents for low-latency response
         await enqueue_agents_for_decision(selected_agents, event)
@@ -93,3 +120,13 @@ async def upload_pdf(file: UploadFile = File(...)):
         )
 
     return {"events": events, "routing": routing_results}
+
+
+def normalize_event(event: dict) -> dict:
+    def first(val):
+        return val[0] if isinstance(val, list) and val else val
+
+    event["event_type"] = first(event.get("event_type"))
+    event["severity"] = first(event.get("severity"))
+    event["airport_code"] = first(event.get("airport_code"))
+    return event

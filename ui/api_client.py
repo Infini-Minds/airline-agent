@@ -23,26 +23,49 @@ def fetch_data(endpoint: str):
 def post_threat_simulation(city: str, alternate_airport: str | None) -> dict | str:
     """Posts a bomb threat to the Flask API."""
     try:
-        # Use query parameters as defined in your Flask app
         params = {"city": city}
         if alternate_airport:
             params["alternate_airport"] = alternate_airport
 
-        response = requests.post(f"{BASE_URL}/bomb-threat/city", params=params)
-
-        # Check for HTTP errors (4xx or 5xx)
+        response = requests.post(f"{BASE_URL}/disruption/city", params=params)
+        
         response.raise_for_status()
-
-        # Success case
+        
         return f"Threat successfully simulated in **{city}**!"
 
     except requests.exceptions.HTTPError as e:
-        # Handle specific API errors from the Flask app
         try:
             error_data = response.json()
             return error_data
         except:
             return {"error": f"HTTP Error {response.status_code}: {e}"}
+
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Connection or unexpected error: {e}"}
+    
+
+def post_upload_pdf(file):
+    """Uploads PDF and triggers threat processing in Flask API."""
+    try:
+        BASE_URL_ = "http://localhost:8000"
+        files = {
+            "file": (file.name, file.getbuffer(), "application/pdf")
+        }
+
+        response = requests.post(
+            f"{BASE_URL_}/upload",
+            files=files,
+            timeout=30
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    except requests.exceptions.HTTPError:
+        try:
+            return response.json()
+        except:
+            return {"error": f"HTTP Error {response.status_code}"}
 
     except requests.exceptions.RequestException as e:
         return {"error": f"Connection or unexpected error: {e}"}

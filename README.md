@@ -1,28 +1,27 @@
 # Airlines IRROPS - demo
 
-## Prereqs
+## Prereqsites
 - Python 3.10+
-- docker & docker-compose (optional, for Postgres)
 - OpenAI API key
+- DB credentials
 
 ## Setup
 
 1. Copy .env.example -> .env and set OPENAI_API_KEY and DB credentials
-2. Start Postgres:
-   - Option A (docker): `docker-compose up -d`
-   - Option B (local Postgres): create DB and run init_db.sql
+
+2. create venv and activate:
+    python3 -m venv myenv
+    source myenv/bin/activate
 
 3. Install deps:
-   pip install -r requirements.txt
+   pip3 install -r requirements.txt
 
-4. Run FastAPI:
+4. Run FastAPI fo Agents:
    uvicorn app:app --reload --host 0.0.0.0 --port 8000
 
-5. Run the Python UI script:
-   python gradio_ui/ui.py
+5. Run FastAPI fo API(POSTGRES TABLE):
+    uvicorn api.main:app --reload --host 0.0.0.0 --port 8001
 
-You can access the UI in your browser at:
-   http://localhost:7860
-
-The endpoint returns parsed events and the AI routing decision for each event.
-
+6. To Run ui
+   cd ui/
+   streamlit run main.py
