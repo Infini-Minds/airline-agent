@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 from urllib.parse import quote
 from datetime import datetime, timezone
+
 # import datetime
 
 load_dotenv()
@@ -31,9 +32,7 @@ async def init_db():
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute("""
-        DROP TABLE IF EXISTS master_decision_table;
-
-        CREATE TABLE master_decision_table (
+        CREATE TABLE IF NOT EXISTS public.master_decision_table (
             id SERIAL PRIMARY KEY,
             event_id TEXT NOT NULL,
             event_json JSONB NOT NULL,
